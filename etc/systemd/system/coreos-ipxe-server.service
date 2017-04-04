@@ -1,0 +1,15 @@
+[Unit]
+Description=coreos-ipxe-server service
+After=libvirtd.service
+
+[Service]
+Type=simple
+Environment=COREOS_IPXE_SERVER_BASE_URL=192.168.10.2:4777
+
+ExecStart=/opt/coreos-ipxe-server/coreos-ipxe-server
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

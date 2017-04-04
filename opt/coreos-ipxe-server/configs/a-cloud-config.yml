@@ -1,0 +1,480 @@
+#cloud-config
+hostname: a-coreos.nurm.local
+users:
+  - name: nurmukhamed
+    groups:
+      - sudo
+      - docker
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDnnMkmWq5JNNn/cEx0WyRO330OAmlvWeV/qthraHMzEsNoBIcTFTX8uZbUFmGIWxeOXuRhe0OPmDM9BWNp3GLBk7Rf96SBhj1s7zFIKQzObCf+F7Ql7bdXgfnkOhsQFWHU6hhY85qWzMf+hkQ7RRXm4r66jBX8xrcvqiO+ZFr0mrgdPYtacLCfnTWoVfPgn+PLeKtEHCzwGMAor8lZoqL0VLLusONRyV4sPfuin2xTlewqNEg7uRI2Rgi4HCciX0gzAtIuWjcPulXyNoK3sukf5/h85SCZm30riwdek6sdwwFXkfGQcrV/xpGRS8AW96QCXfHKhOyR7quh40xd602iTlRxTXh7ATBoMdyyob4U+6z8di06N2j2LQlI1yBYHWanoKv8sRbYG7rXDgUu6f3tsdWbgkAG4FSK+jV9i1Hs6EBLOceidfFoAhX3+w9aCzPoi+xchuCgri18F3N/uDwceiTLl6U7GmRhyxAg1oKCjwW1QZ9wo7tgcaNFY/CERsFrUVC0SRVNApeKghNZWtuEjYGBsg7xxAPQEh+IMHOxrrY+CBkawtv8JPWBmpwE4yYdan7OMumO/jhkWVoYZb8KCbfjPuYMTT0JlKhQkh2/PHElZLf6Go/gBhI/8Vf/Kdj9PSZVkizOtH53f3AWVLX01eX3qxd/7+d/3zrx4k/I5Q== 87017586495@hdfilm.kz
+write-files:
+  - path: /etc/kubernetes/ssl/ca.pem
+    permissions: '0600'
+    owner: "root:root"
+    content: |
+      -----BEGIN CERTIFICATE-----
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      O
+      1
+      2
+      3
+      4
+      5
+      6
+      -----END CERTIFICATE-----
+  - path: /etc/kubernetes/ssl/apiserver.pem
+    permissions: '0600'
+    owner: "root:root"
+    content: |
+      -----BEGIN CERTIFICATE-----
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      0
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      -----END CERTIFICATE-----
+  - path: /etc/kubernetes/ssl/apiserver-key.pem
+    permissions: '0600'
+    owner: "root:root"
+    content: |
+      -----BEGIN RSA PRIVATE KEY-----
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      0
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      0
+      1
+      2
+      3
+      4
+      5
+      -----END RSA PRIVATE KEY-----
+  - path: /etc/kubernetes/ssl/worker.pem
+    permissions: '0600'
+    owner: 'root:root'
+    content: |
+      -----BEGIN CERTIFICATE-----
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      0
+      1
+      2
+      3
+      4
+      5
+      6
+      -----END CERTIFICATE-----
+  - path: /etc/kubernetes/ssl/worker-key.pem
+    permissions: '0600'
+    owner: 'root:root'
+    content: |
+      -----BEGIN RSA PRIVATE KEY-----
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      0
+      1
+      2
+      3
+      4
+      5
+      6
+      7
+      8
+      9
+      0
+      1
+      2
+      3
+      4
+      5
+      -----END RSA PRIVATE KEY-----
+  - path: /etc/kubernetes/cni/docker_opts_cni.env
+    content: |
+      DOCKER_OPT_BIP=""
+      DOCKER_OPT_IPMASQ=""
+  - path: /etc/kubernetes/cni/net.d/10-flannel.conf
+    content: |
+      {
+        "name": "podnet",
+        "type": "flannel",
+        "delegate": {
+           "isDefaultGateway": true
+        }
+      }
+  - path: /etc/kubernetes/manifests/kube-apiserver.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: kube-apiserver
+        namespace: kube-system
+      spec:
+        hostNetwork: true
+        containers:
+        - name: kube-apiserver
+          image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
+          command:
+          - /hyperkube
+          - apiserver
+          - --bind-address=0.0.0.0
+          - --etcd-servers=http://coreos-ipxe.nurm.local:2379
+          - --allow-privileged=true
+          - --service-cluster-ip-range=10.3.0.0/24
+          - --secure-port=443
+          - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
+          - --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem
+          - --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem
+          - --client-ca-file=/etc/kubernetes/ssl/ca.pem
+          - --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem
+          - --runtime-config=extensions/v1beta1/networkpolicies=true
+          - --anonymous-auth=false
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              port: 8080
+              path: /healthz
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+          ports:
+          - containerPort: 443
+            hostPort: 443
+            name: https
+          - containerPort: 8080
+            hostPort: 8080
+            name: local
+          volumeMounts:
+          - mountPath: /etc/kubernetes/ssl
+            name: ssl-certs-kubernetes
+            readOnly: true
+          - mountPath: /etc/ssl/certs
+            name: ssl-certs-host
+            readOnly: true
+        volumes:
+        - hostPath:
+            path: /etc/kubernetes/ssl
+          name: ssl-certs-kubernetes
+        - hostPath:
+            path: /usr/share/ca-certificates
+          name: ssl-certs-host
+  - path: /etc/kubernetes/manifests/kube-proxy.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: kube-proxy
+        namespace: kube-system
+      spec:
+        hostNetwork: true
+        containers:
+        - name: kube-proxy
+          image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
+          command:
+          - /hyperkube
+          - proxy
+          - --master=http://127.0.0.1:8080
+          - --kubeconfig=/etc/kubernetes/worker-kubeconfig.yaml
+          securityContext:
+            privileged: true
+          volumeMounts:
+          - mountPath: /etc/ssl/certs
+            name: "ssl-certs"
+          - mountPath: /etc/kubernetes/worker-kubeconfig.yaml
+            name: "kubeconfig"
+            readOnly: true
+          - mountPath: /etc/kubernetes/ssl
+            name: "etc-kube-ssl"
+            readOnly: true
+        volumes:
+        - name: "ssl-certs"
+          hostPath:
+            path: "/usr/share/ca-certificates"
+        - name: "kubeconfig"
+          hostPath:
+            path: "/etc/kubernetes/worker-kubeconfig.yaml"
+        - name: "etc-kube-ssl"
+          hostPath:
+            path: "/etc/kubernetes/ssl"
+  - path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: kube-controller-manager
+        namespace: kube-system
+      spec:
+        hostNetwork: true
+        containers:
+        - name: kube-controller-manager
+          image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
+          command:
+          - /hyperkube
+          - controller-manager
+          - --master=http://127.0.0.1:8080
+          - --leader-elect=true
+          - --service-account-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem
+          - --root-ca-file=/etc/kubernetes/ssl/ca.pem
+          resources:
+            requests:
+              cpu: 200m
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 10252
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+          volumeMounts:
+          - mountPath: /etc/kubernetes/ssl
+            name: ssl-certs-kubernetes
+            readOnly: true
+          - mountPath: /etc/ssl/certs
+            name: ssl-certs-host
+            readOnly: true
+        volumes:
+        - hostPath:
+            path: /etc/kubernetes/ssl
+          name: ssl-certs-kubernetes
+        - hostPath:
+            path: /usr/share/ca-certificates
+          name: ssl-certs-host
+  - path: /etc/kubernetes/manifests/kube-scheduler.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: kube-scheduler
+        namespace: kube-system
+      spec:
+        hostNetwork: true
+        containers:
+        - name: kube-scheduler
+          image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
+          command:
+          - /hyperkube
+          - scheduler
+          - --master=http://127.0.0.1:8080
+          - --leader-elect=true
+          resources:
+            requests:
+              cpu: 100m
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 10251
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+  - path: /etc/kubernetes/worker-kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      clusters:
+      - name: local
+        cluster:
+          certificate-authority: /etc/kubernetes/ssl/ca.pem
+      users:
+      - name: kubelet
+        user:
+          client-certificate: /etc/kubernetes/ssl/worker.pem
+          client-key: /etc/kubernetes/ssl/worker-key.pem
+      contexts:
+      - context:
+          cluster: local
+          user: kubelet
+        name: kubelet-context
+      current-context: kubelet-context
+  - path: /etc/flannel/options.env
+    content: |
+      FLANNELD_IFACE=192.168.10.18
+      FLANNELD_ETCD_ENDPOINTS=http://coreos-ipxe.nurm.local:2379
+  - path: /home/nurmukhamed/.bashrc
+    permissions: '0644'
+    content: |
+      # .bashrc
+      
+      # Source global definitions
+      if [ -f /etc/bashrc ]; then
+        ./etc/bashrc
+      fi
+      
+      alias systemctl='sudo systemctl'
+      alias svim='sudo vim'
+      alias list-units='sudo fleetctl list-units'
+      alias list-machines='sudo fleetctl list-machines'
+      alias list-unit-files='sudo fleetctl list-unit-files'
+      
+      service_del() {
+        sudo fleetctl stop "$@"
+        sudo fleetctl unload "$@"
+        sudo fleetctl destroy "$@"
+        
+      }
+      service_add() {
+        sudo fleetctl submit "$@"
+        sudo fleetctl load "$@"
+        sudo fleetctl start "$@"
+      }
+      
+      sprunge() {
+        if [[ $1 ]]; then
+          curl -F 'sprunge=<-' "http://sprunge.us" <"$1"
+        else
+          curl -F 'sprunge=<-' "http://sprunge.us"
+        fi
+      }
+coreos:
+  units:
+    - name: 10-static.network
+      runtime: true
+      content: |
+        [Match]
+        Name=eth0
+
+        [Network]
+        Address=192.168.10.18/24
+        Gateway=192.168.10.254
+        DNS=192.168.10.2
+    - name: format-ephemeral.service
+      command: start
+      content: |
+        [Unit]
+        Description=Formats the ephemeral drive
+        After=dev-sda.device
+        Requires=dev-sda.device
+        Before=docker.service
+        Before=fleet.service
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/sbin/wipefs -f /dev/sda
+        ExecStart=/usr/sbin/parted -s /dev/sda mklabel gpt
+        ExecStart=/usr/sbin/parted -s /dev/sda mkpart primary ext4 512s 8000MiB
+        ExecStart=/usr/sbin/parted -s /dev/sda mkpart primary ext4 8000MiB 16000MiB
+        ExecStart=/usr/sbin/mkfs.ext4 -F /dev/sda1
+        ExecStart=/usr/sbin/mkfs.ext4 -F /dev/sda2
+    - name: var-lib-docker.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount ephemeral to /var/lib/docker
+        Requires=format-ephemeral.service
+        After=format-ephemeral.service
+        Before=docker.service
+        [Mount]
+        What=/dev/sda1
+        Where=/var/lib/docker
+        Type=ext4
+    - name: var-lib-rkt.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount ephemeral to /var/lib/rkt
+        Requires=format-ephemeral.service
+        After=format-ephemeral.service
+        Before=fleet.service
+        [Mount]
+        What=/dev/sda2
+        Where=/var/lib/rkt
+        Type=ext4
+    - name: docker.service
+      drop-ins:
+        - name: 40-flannel.conf
+          content: |
+            [Unit]
+            Requires=flanneld.service
+            After=flanneld.service
+            [Service]
+            EnvironmentFile=/etc/kubernetes/cni/docker_opts_cni.env
+      command: start
+    - name: fleet.service
+      command: start
+    - name: flanneld.service
+      drop-ins:
+        - name: 40-ExecStartPre-symlink.conf
+          content: |
+            [Service]
+            ExecStartPre=/usr/bin/ln -sf /etc/flannel/options.env /run/flannel/options.env
+      command: start
+    - name: kubelet.service
+      command: start
+      content: |
+        [Service]
+        Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
+        Environment="RKT_RUN_ARGS=--uuid-file-save=/var/run/kubelet-pod.uuid \
+        --volume var-log,kind=host,source=/var/log \
+        --mount volume=var-log,target=/var/log \
+        --volume dns,kind=host,source=/etc/resolv.conf \
+        --mount volume=dns,target=/etc/resolv.conf"
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/usr/bin/mkdir -p /var/log/containers
+        ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/run/kubelet-pod.uuid
+        ExecStart=/usr/lib/coreos/kubelet-wrapper \
+        --api-servers=http://127.0.0.1:8080 \
+        --register-schedulable=false \
+        --cni-conf-dir=/etc/kubernetes/cni/net.d \
+        --network-plugin=cni \
+        --container-runtime=docker \
+        --allow-privileged=true \
+        --pod-manifest-path=/etc/kubernetes/manifests \
+        --cluster_dns=192.168.10.2 \
+        --cluster_domain=nurm.local 
+        ExecStop=-/usr/bin/rkt stop --uuid-file=/var/run/kubelet-pod.uuid
+        Restart=always
+        RestartSec=10
+        
+        [Install]
+        WantedBy=multi-user.target
+  fleet:
+    etcd_servers: "http://coreos-ipxe.nurm.local:2379"
+  locksmith:
+    endpoint: "http://coreos-ipxe.nurm.local:2379"

@@ -1,0 +1,7 @@
+{
+    "cloud_config": "a-cloud-config",
+    "console": ["tty0", "tty1"],
+    "rootfstype": "btrfs",
+    "sshkey": "nurmukhamed",
+    "version": "1298.7.0"
+}

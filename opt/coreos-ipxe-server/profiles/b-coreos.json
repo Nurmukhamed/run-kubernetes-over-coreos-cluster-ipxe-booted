@@ -1,0 +1,6 @@
+{
+    "cloud_config": "b-cloud-config",
+    "rootfstype": "btrfs",
+    "sshkey": "nurmukhamed",
+    "version": "1298.7.0"
+}
